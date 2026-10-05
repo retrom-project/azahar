@@ -28,16 +28,26 @@ jobs:
           echo "RETROM_CMAKE_ROOT=$RUNNER_TEMP/cmake/cmake/data" >> "$GITHUB_ENV"
       - name: Verify packaging contracts
         run: python3 -m unittest discover -s .github/rpg-runtime -p 'test_*.py'
-      - name: Build owned core candidate
-        run: bash .github/rpg-runtime/build-candidate.sh .cache/candidate
       - name: Verify immutable release source
         if: startsWith(github.ref, 'refs/tags/')
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = tag
-          git merge-base --is-ancestor HEAD origin/retrom/g62cfcfb5e488
-          python3 .github/rpg-runtime/release.py --candidate .cache/candidate --output .cache/release --tag "$RELEASE_TAG"
+          set -euo pipefail
+          remote_tag_ref="refs/retrom-release/$RELEASE_TAG"
+          git fetch origin "refs/tags/$RELEASE_TAG:$remote_tag_ref"
+          test "$(git cat-file -t "$remote_tag_ref")" = tag
+          test "$(git rev-list -n 1 "$remote_tag_ref")" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git fetch --no-tags origin '+refs/heads/retrom/g62cfcfb5e488:refs/remotes/origin/retrom/g62cfcfb5e488'
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/retrom/g62cfcfb5e488
+      - name: Build owned core candidate
+        run: bash .github/rpg-runtime/build-candidate.sh .cache/candidate
+      - name: Package immutable release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 .github/rpg-runtime/release.py --candidate .cache/candidate --output .cache/release --tag "$RELEASE_TAG"
       - uses: actions/upload-artifact@v4
         with:
           name: core-candidate
