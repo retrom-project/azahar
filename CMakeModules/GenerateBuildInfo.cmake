@@ -8,7 +8,15 @@ macro(generate_build_info)
 
     list(APPEND CMAKE_MODULE_PATH "${SRC_DIR}/externals/cmake-modules")
 
-    if (EXISTS "${SRC_DIR}/.git/objects")
+    if (DEFINED RETROM_SOURCE_REV)
+        string(LENGTH "${RETROM_SOURCE_REV}" RETROM_REV_LENGTH)
+        if (NOT RETROM_REV_LENGTH EQUAL 40 OR NOT RETROM_SOURCE_REV MATCHES "^[0-9a-f]+$")
+            message(FATAL_ERROR "RETROM_SOURCE_REV_INVALID")
+        endif()
+        set(GIT_REV "${RETROM_SOURCE_REV}")
+        set(GIT_DESC "${RETROM_SOURCE_REV}")
+        set(GIT_BRANCH "HEAD")
+    elseif (EXISTS "${SRC_DIR}/.git/objects")
         # Find the package here with the known path so that the GetGit commands can find it as well
         find_package(Git QUIET PATHS "${GIT_EXECUTABLE}")
 

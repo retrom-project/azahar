@@ -382,10 +382,19 @@ static void setup_memory_maps() {
     }
 }
 
+#ifdef __EMSCRIPTEN__
+extern "C" void retrom_content_load_set(int);
+#else
+static void retrom_content_load_set(int) {}
+#endif
+
 static bool do_load_game() {
     const Core::System::ResultStatus load_result{
         Core::System::GetInstance().Load(*emu_instance->emu_window, LibRetro::settings.file_path)};
 
+    if (load_result != Core::System::ResultStatus::Success) {
+        retrom_content_load_set(load_result == Core::System::ResultStatus::ErrorLoader_ErrorEncrypted ? -2 : -1);
+    }
     switch (load_result) {
     case Core::System::ResultStatus::Success:
         break; // Expected case
@@ -428,6 +437,7 @@ static bool do_load_game() {
     }
 
     setup_memory_maps();
+    retrom_content_load_set(1);
 
     return true;
 }

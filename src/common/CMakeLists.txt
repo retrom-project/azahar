@@ -11,6 +11,7 @@ add_custom_command(OUTPUT scm_rev.cpp
     COMMAND ${CMAKE_COMMAND}
       -DSRC_DIR="${CMAKE_SOURCE_DIR}"
       -DGIT_EXECUTABLE="${GIT_EXECUTABLE}"
+      $<$<BOOL:${RETROM_SOURCE_REV}>:-DRETROM_SOURCE_REV=${RETROM_SOURCE_REV}>
       -P "${CMAKE_SOURCE_DIR}/CMakeModules/GenerateSCMRev.cmake"
     DEPENDS
       # WARNING! It was too much work to try and make a common location for this list,
@@ -55,6 +56,7 @@ add_custom_command(OUTPUT scm_rev.cpp
       "${CMAKE_CURRENT_SOURCE_DIR}/scm_rev.h"
       # technically we should regenerate if the git version changed, but its not worth the effort imo
       "${CMAKE_SOURCE_DIR}/CMakeModules/GenerateSCMRev.cmake"
+      "${CMAKE_SOURCE_DIR}/CMakeModules/GenerateBuildInfo.cmake"
 )
 
 add_library(citra_common STATIC

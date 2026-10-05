@@ -1,0 +1,71 @@
+name: Retrom Core Quality and Release
+on:
+  pull_request:
+    branches: [retrom/g62cfcfb5e488]
+  push:
+    branches: [retrom/g62cfcfb5e488, 'feat/**', 'fix/**', 'build/**']
+    tags: [retrom-core-g62cfcfb5e488-r*]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+      - name: Install pinned CMake
+        run: |
+          python3 -m pip install --target "$RUNNER_TEMP/cmake" cmake==3.31.6
+          echo "RETROM_CMAKE_ROOT=$RUNNER_TEMP/cmake/cmake/data" >> "$GITHUB_ENV"
+      - name: Verify packaging contracts
+        run: python3 -m unittest discover -s .github/rpg-runtime -p 'test_*.py'
+      - name: Build owned core candidate
+        run: bash .github/rpg-runtime/build-candidate.sh .cache/candidate
+      - name: Verify immutable release source
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = tag
+          git merge-base --is-ancestor HEAD origin/retrom/g62cfcfb5e488
+          python3 .github/rpg-runtime/release.py --candidate .cache/candidate --output .cache/release --tag "$RELEASE_TAG"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: core-candidate
+          path: .cache/candidate
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: core-release
+          path: .cache/release
+          if-no-files-found: error
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: candidate
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: core-release
+          path: release
+      - name: Publish immutable assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          options=()
+          if [[ "$RELEASE_TAG" == *-rc.* ]]; then options+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" release/* --verify-tag --title "$RELEASE_TAG" --generate-notes "${options[@]}"
