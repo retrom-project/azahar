@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "forkRepository": "https://github.com/retrom-project/azahar",
+  "defaultBranch": "retrom/g62cfcfb5e488",
+  "upstreamMirrorBranch": "warmenhoven/dev/azahar_libretro",
+  "upstreams": [
+    {
+      "role": "core",
+      "repository": "https://github.com/EmulatorJS/azahar",
+      "refType": "COMMIT",
+      "ref": "62cfcfb5e488f158f5f7ba83b725bb0ddd04da44",
+      "commit": "62cfcfb5e488f158f5f7ba83b725bb0ddd04da44"
+    }
+  ],
+  "releaseTagPattern": "^retrom-core-g62cfcfb5e488-r[1-9][0-9]*(-rc\\.[1-9][0-9]*)?$",
+  "adapterAbi": "emulatorjs-content-result-v1",
+  "releaseAssets": [
+    "azahar-thread-wasm.data",
+    "azahar.json",
+    "LICENSE",
+    "rpg-runtime-release.json"
+  ]
+}
